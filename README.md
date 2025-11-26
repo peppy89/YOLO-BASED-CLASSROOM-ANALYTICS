@@ -1,150 +1,135 @@
 # YOLO-BASED-CLASSROOM-ANALYTICS (YOLO + Jetson + OpenCV)
 
-This project is a real-time classroom monitoring system that uses computer vision and YOLO-based deep learning to detect students, count occupancy, and estimate classroom engagement without storing any personal data. A single camera placed at the back of the classroom provides a live video stream, which is processed on an NVIDIA Jetson device.
+A real-time, privacy-friendly classroom monitoring solution built using **YOLO object detection**, **OpenCV**, and **NVIDIA Jetson** hardware.  
+The system detects students, estimates engagement, and logs analytics — all without storing identities or video.
 
-The system shows the number of students, calculates a simple engagement score using spatial zones, and logs time-stamped data for later analysis. All processing is done locally to maintain privacy and efficiency.
+---
 
-Features
+## ✨ Features
 
-Real-time student detection using YOLO object detection
+- 🎯 Real-time student detection using YOLO  
+- 👁️ Engagement estimation using spatial zones (middle 1/3 × upper 2/3)  
+- 🔒 Privacy-preserving (no facial recognition, no image storage)  
+- 📈 Automatic CSV logging for analytics  
+- ⚡ Optimized for NVIDIA Jetson devices  
+- 🎥 Live annotated video feed  
+- 📷 Works with a single USB camera  
 
-Privacy-preserving engagement estimation based on spatial heuristics
+---
 
-Live annotated video feed with bounding boxes and statistics
+## 🧰 System Requirements
 
-Automatic CSV logging of timestamp, student count, and engagement score
+- NVIDIA Jetson (Nano, Xavier, Orin)  
+- Ubuntu + JetPack  
+- Python 3.10+  
+- USB webcam (e.g., Sandberg)  
+- YOLO11 model weights (`yolo11n.pt`)  
 
-Optimized for NVIDIA Jetson edge devices
+---
 
-GStreamer or OpenCV camera capture support
+## 🚀 Installation
 
-Single-camera, low-cost setup
-
-System Requirements
-
-NVIDIA Jetson (Orin, Xavier, Nano, etc.) with JetPack installed
-
-Python 3.10+
-
-USB camera (e.g., Sandberg)
-
-SSD or SD card with Ubuntu
-
-YOLO11n model weights (yolo11n.pt)
-
-Virtual environment recommended
-
-Installation
-1. Create Project Folder
+### 1️⃣ Create Project Folder
+```bash
 mkdir ~/classroom_yolo
 cd ~/classroom_yolo
+```
 
-2. Create Virtual Environment
+### 2️⃣ Create Virtual Environment
+```bash
 sudo apt install -y python3.10-venv python3-pip-whl python3-setuptools-whl
 python3 -m venv ~/yolo_env
 source ~/yolo_env/bin/activate
+```
 
-3. Install Dependencies
+### 3️⃣ Install Dependencies
+```bash
 pip install --upgrade pip setuptools wheel
 pip install "numpy<2.0" opencv-python ultralytics
 pip install https://github.com/sudoRicheek/jetson-wheels/releases/download/jp6-cu126/torch-2.8.0-cp310-cp310-linux_aarch64.whl
+```
 
-4. Download YOLO Model
+### 4️⃣ Download YOLO Model
+```bash
 yolo download model=yolo11n.pt
+```
+Move yolo11n.pt to ~/classroom_yolo.
 
-
-Place the yolo11n.pt file inside your project folder.
-
-Running the System
-1. Activate Environment
+## ▶️ Running the Program
+### Activate environment:
+```bash
 source ~/yolo_env/bin/activate
 cd ~/classroom_yolo
-
-2. Run the Script
-python classroom_monitor.py
-
-3. Quit Program
-
+```
+### Run:
+```bash
+python3 classroom_monitor.py
+```
+### Exit:
 Press q in the video window.
 
-How It Works
-1. Camera Capture
+## 🧠 How It Works
 
-The system opens the camera using either:
+### 1. Camera Capture
+The system tries:
+  - A GStreamer pipeline (Jetson optimized), then
+  - Fallback to cv2.VideoCapture(0).
 
-GStreamer pipeline (recommended for Jetson), or
+### 2. YOLO Detection
+  - Detects only the person class
+  - Counts the number of detected students
+    
+### 3. Engagement Estimation
+A student is considered engaged if the center of their bounding box is in:
+  - The middle third horizontally, and
+  - The upper two-thirds vertically
+This is a simple, privacy-safe heuristic.
 
-OpenCV VideoCapture(0) as backup.
+### 4. Smoothing
+A deque(maxlen=30) keeps recent engagement values and averages them,
+creating a stable engagement metric.
 
-2. YOLO Detection
-
-Each frame is passed through YOLO11 to detect students (person class only).
-The total number of detected students is shown on screen.
-
-3. Engagement Estimation
-
-A simple spatial heuristic determines engagement:
-
-X-axis middle 1/3 of the image
-
-Y-axis upper 2/3 of the image
-
-Students whose center falls in this zone are counted as “engaged”.
-
-4. Smoothing
-
-Engagement is averaged over the last 30 frames to avoid sudden jumps.
-
-5. Logging
-
-Every 10 seconds, one line is added to classroom_log.csv:
-
+### 5. Logging
+Every LOG_INTERVAL seconds (default 10 sec), the system writes:
+```bash
 timestamp, num_students, engagement
+```
+to classroom_log.csv.
+### 6. Display
+Shows:
+  - Bounding boxes
+  - Student count
+  - Engagement %
+  - Engagement zone rectangle
 
-6. Display
+---
 
-The system shows:
+## 🔮 Future Enhancements
 
-Video with bounding boxes
+  - 🤖 Head-pose estimation for improved engagement accuracy
+  
+  - 🧍 YOLO Pose model for body posture and keypoints
+  
+  - 🧪 Additional behaviors (phone use, hand-raising, etc.)
+  
+ -  🖥️ Web dashboard (Flask + Chart.js)
+  
+  - 🎥 Multi-camera support
+  
+  - 🪑 Seat-map occupancy detection
+  
+  - ⚙️ TensorRT optimization
 
-Student count
+---
 
-Engagement percentage
+## 🔐 Privacy Notice
 
-Engagement-zone rectangle
-
-Project Structure
-classroom_yolo/
-│
-├── classroom_monitor.py     # Main program
-├── yolo11n.pt               # YOLO model weights
-├── classroom_log.csv        # Auto-generated log file
-└── README.md                # Project documentation
-
-Future Enhancements
-
-Head-pose estimation for more accurate engagement
-
-YOLO pose model for keypoints and body posture
-
-Web dashboard for analytics visualization
-
-Multi-camera support
-
-Seat-map occupancy detection
-
-Better behavior detection (phone use, hand-raising, etc.)
-
-Privacy Notice
-
-The system does not store images, video, or facial data.
-It only logs anonymous aggregate values (student count + engagement score).
-All processing runs locally on the Jetson device.
-
-Credits
-
-YOLO models by Ultralytics
-
-Jetson wheels by sudoRicheek
-
-Guidance and explanation provided by ChatGPT (OpenAI)
+  - This system:
+  
+  - Does not store images or videos
+  
+  - Does not perform facial recognition
+  
+  - Logs only anonymous aggregate values
+  
+  - Processes all data locally on the Jetson device
